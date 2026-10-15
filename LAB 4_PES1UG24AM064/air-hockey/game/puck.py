@@ -2,6 +2,8 @@
 Puck: the disc players are trying to hit into the opponent's goal.
 """
 
+import math
+
 
 class Puck:
     def __init__(self, x, y, radius=12):
@@ -11,9 +13,13 @@ class Puck:
         self.vx = 0.0
         self.vy = 0.0
 
-    def move(self):
-        self.x += self.vx
-        self.y += self.vy
+    def speed(self):
+        return math.hypot(self.vx, self.vy)
+
+    def move(self, fraction=1.0):
+        """Advance by `fraction` of one frame's velocity (for sub-stepping)."""
+        self.x += self.vx * fraction
+        self.y += self.vy * fraction
 
     def bounce_off_walls(self, height, margin):
         """Bounce off the top and bottom walls only - left/right are handled

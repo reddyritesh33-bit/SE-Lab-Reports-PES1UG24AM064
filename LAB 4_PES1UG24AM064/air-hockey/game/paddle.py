@@ -13,6 +13,18 @@ class Paddle:
         self.max_x = max_x
         self.min_y = min_y
         self.max_y = max_y
+        # Velocity in px/frame, so a moving paddle can strike the puck.
+        self.vx = 0.0
+        self.vy = 0.0
+        self._last_x = x
+        self._last_y = y
+
+    def track_velocity(self):
+        """Record how far the paddle moved since the last call (once per frame)."""
+        self.vx = self.x - self._last_x
+        self.vy = self.y - self._last_y
+        self._last_x = self.x
+        self._last_y = self.y
 
     def clamp(self):
         self.x = max(self.min_x, min(self.max_x, self.x))

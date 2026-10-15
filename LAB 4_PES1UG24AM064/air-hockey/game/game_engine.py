@@ -7,6 +7,7 @@ there is no scoring, no match timer, and the reset that happens after
 a goal is incomplete. That's what Tasks 2-4 fix/add.
 """
 
+import math
 import random
 
 from game.puck import Puck
@@ -19,6 +20,7 @@ PLAYER_SPEED = 6
 PUCK_RADIUS = 12
 PADDLE_RADIUS = 28
 INITIAL_PUCK_SPEED = 4.5
+MAX_STEP = PUCK_RADIUS / 2   # max px the puck travels per physics sub-step
 
 
 class GameEngine:
@@ -60,14 +62,20 @@ class GameEngine:
 
     def update(self):
         self.ai.update(self.computer, self.puck)
+        self.player.track_velocity()
+        self.computer.track_velocity()
 
-        self.puck.move()
-        self.puck.bounce_off_walls(HEIGHT, MARGIN)
+        # Move the puck in small sub-steps so a fast puck can't jump over
+        # (or deep inside) a paddle between two frames.
+        steps = max(1, math.ceil(self.puck.speed() / MAX_STEP))
+        for _ in range(steps):
+            self.puck.move(1 / steps)
+            self.puck.bounce_off_walls(HEIGHT, MARGIN)
 
-        handle_paddle_collision(self.puck, self.player)
-        handle_paddle_collision(self.puck, self.computer)
+            handle_paddle_collision(self.puck, self.player)
+            handle_paddle_collision(self.puck, self.computer)
 
-        self._handle_goals()
+            self._handle_goals()
 
     def _handle_goals(self):
         if self.puck.x - self.puck.radius < MARGIN:
