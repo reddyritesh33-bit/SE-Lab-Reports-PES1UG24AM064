@@ -13,11 +13,19 @@ class Paddle:
         self.max_x = max_x
         self.min_y = min_y
         self.max_y = max_y
+        self.home_x = x
+        self.home_y = y
         # Velocity in px/frame, so a moving paddle can strike the puck.
         self.vx = 0.0
         self.vy = 0.0
         self._last_x = x
         self._last_y = y
+
+    def reset(self):
+        """Back to the starting spot, at rest (no fake velocity from the jump)."""
+        self.x = self._last_x = self.home_x
+        self.y = self._last_y = self.home_y
+        self.vx = self.vy = 0.0
 
     def track_velocity(self):
         """Record how far the paddle moved since the last call (once per frame)."""

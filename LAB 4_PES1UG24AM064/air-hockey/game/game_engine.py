@@ -2,9 +2,9 @@
 GameEngine: owns the puck, both paddles, and the computer AI, and runs
 one frame's worth of game logic.
 
-Starter version: the puck bounces around and paddles can hit it, but
-there is no scoring, no match timer, and the reset that happens after
-a goal is incomplete. That's what Tasks 2-4 fix/add.
+Handles scoring (a goal counts once the puck fully crosses the goal
+line), a 30-second match timer with a win/lose/draw result, and a
+clean re-serve from the centre after every goal.
 """
 
 import math
@@ -49,9 +49,10 @@ class GameEngine:
         self.time_left = MATCH_SECONDS
         self.match_over = False
 
-    def _launch_puck(self):
+    def _launch_puck(self, direction=None):
         angle_choices = [0.3, 0.6, -0.3, -0.6]
-        direction = random.choice([-1, 1])
+        if direction is None:
+            direction = random.choice([-1, 1])
         vy_factor = random.choice(angle_choices)
         self.puck.vx = INITIAL_PUCK_SPEED * direction
         self.puck.vy = INITIAL_PUCK_SPEED * vy_factor
@@ -131,7 +132,7 @@ class GameEngine:
                 self.computer_score += 1
             else:
                 self.player_score += 1
-            self._reset_puck()
+            self._reset_puck(toward=-away)
             return True
         return False
 
@@ -142,10 +143,17 @@ class GameEngine:
             return "Computer wins!"
         return "Draw!"
 
-    def _reset_puck(self):
+    def _reset_puck(self, toward):
+        """
+        Start the next point cleanly: puck back on the centre spot and
+        served straight away toward the side that conceded (-1 = player,
+        1 = computer), paddles back home, and the AI's stale aim cleared.
+        """
         self.puck.x, self.puck.y = WIDTH / 2, HEIGHT / 2
-        self.puck.vx = 0
-        self.puck.vy = 0
+        self._launch_puck(direction=toward)
+        self.player.reset()
+        self.computer.reset()
+        self.ai.reset()
 
     def draw(self, surface, font):
         from game import renderer
