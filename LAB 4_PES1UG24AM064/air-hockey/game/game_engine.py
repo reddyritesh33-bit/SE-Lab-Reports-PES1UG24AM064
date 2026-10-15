@@ -40,6 +40,9 @@ class GameEngine:
         )
         self.ai = ComputerAI()
 
+        self.player_score = 0
+        self.computer_score = 0
+
     def _launch_puck(self):
         angle_choices = [0.3, 0.6, -0.3, -0.6]
         direction = random.choice([-1, 1])
@@ -75,21 +78,54 @@ class GameEngine:
             handle_paddle_collision(self.puck, self.player)
             handle_paddle_collision(self.puck, self.computer)
 
-            self._handle_goals()
+            if self._handle_goals():
+                break
 
     def _handle_goals(self):
-        if self.puck.x - self.puck.radius < MARGIN:
-            if GOAL_TOP < self.puck.y < GOAL_BOTTOM:
-                self._reset_puck()
+        """
+        Bounce off the end walls, or let the puck into the goal mouth and
+        score once it has fully crossed the goal line.
+        Returns True if a goal was scored.
+        """
+        puck = self.puck
+        r = puck.radius
+        if puck.x - r < MARGIN:
+            wall_x, away = MARGIN, 1             # player's goal (left)
+        elif puck.x + r > WIDTH - MARGIN:
+            wall_x, away = WIDTH - MARGIN, -1    # computer's goal (right)
+        else:
+            return False
+
+        depth = (wall_x - puck.x) * away   # how far the centre is past the goal line
+        if depth > 0:
+            # Already in the goal mouth: the posts keep it inside the gap.
+            if puck.y - r < GOAL_TOP:
+                puck.y = GOAL_TOP + r
+                puck.vy = abs(puck.vy)
+            elif puck.y + r > GOAL_BOTTOM:
+                puck.y = GOAL_BOTTOM - r
+                puck.vy = -abs(puck.vy)
+        elif not (GOAL_TOP <= puck.y - r and puck.y + r <= GOAL_BOTTOM):
+            # Hit the wall (or a post) rather than the gap: bounce back.
+            puck.x = wall_x + away * r
+            puck.vx = abs(puck.vx) * away
+            return False
+
+        if depth > r:   # the whole puck is past the goal line
+            if away == 1:
+                self.computer_score += 1
             else:
-                self.puck.x = MARGIN + self.puck.radius
-                self.puck.vx = -self.puck.vx
-        elif self.puck.x + self.puck.radius > WIDTH - MARGIN:
-            if GOAL_TOP < self.puck.y < GOAL_BOTTOM:
-                self._reset_puck()
-            else:
-                self.puck.x = WIDTH - MARGIN - self.puck.radius
-                self.puck.vx = -self.puck.vx
+                self.player_score += 1
+            self._reset_puck()
+            return True
+        return False
+
+    def result_text(self):
+        if self.player_score > self.computer_score:
+            return "You win!"
+        if self.computer_score > self.player_score:
+            return "Computer wins!"
+        return "Draw!"
 
     def _reset_puck(self):
         self.puck.x, self.puck.y = WIDTH / 2, HEIGHT / 2
@@ -102,3 +138,4 @@ class GameEngine:
         renderer.draw_paddle(surface, self.player, renderer.COLOR_PLAYER)
         renderer.draw_paddle(surface, self.computer, renderer.COLOR_COMPUTER)
         renderer.draw_puck(surface, self.puck)
+        renderer.draw_scores(surface, font, self.player_score, self.computer_score)
