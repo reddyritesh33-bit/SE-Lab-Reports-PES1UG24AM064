@@ -54,7 +54,20 @@ def draw_scores(surface, font, player_score, computer_score):
     surface.blit(right, (WIDTH - MARGIN - 12 - right.get_width(), MARGIN + 8))
 
 
-def draw_banner(surface, font, text):
+def draw_timer(surface, font, seconds_left):
+    color = (255, 120, 80) if seconds_left <= 5 else COLOR_TEXT
+    surf = font.render(f"0:{seconds_left:02d}", True, color)
+    surface.blit(surf, surf.get_rect(midtop=(WIDTH // 2, MARGIN + 8)))
+
+
+def draw_dim(surface):
+    """Darken everything drawn so far, so a banner on top stays readable."""
+    shade = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+    shade.fill((0, 0, 0, 160))
+    surface.blit(shade, (0, 0))
+
+
+def draw_banner(surface, font, text, offset_y=0):
     surf = font.render(text, True, (255, 220, 80))
-    rect = surf.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2))
+    rect = surf.get_rect(center=(surface.get_width() // 2, surface.get_height() // 2 + offset_y))
     surface.blit(surf, rect)

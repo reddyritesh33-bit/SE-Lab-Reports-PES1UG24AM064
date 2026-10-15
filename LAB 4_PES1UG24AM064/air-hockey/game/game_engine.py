@@ -9,6 +9,7 @@ a goal is incomplete. That's what Tasks 2-4 fix/add.
 
 import math
 import random
+import time
 
 from game.puck import Puck
 from game.paddle import Paddle
@@ -21,6 +22,7 @@ PUCK_RADIUS = 12
 PADDLE_RADIUS = 28
 INITIAL_PUCK_SPEED = 4.5
 MAX_STEP = PUCK_RADIUS / 2   # max px the puck travels per physics sub-step
+MATCH_SECONDS = 30
 
 
 class GameEngine:
@@ -43,6 +45,10 @@ class GameEngine:
         self.player_score = 0
         self.computer_score = 0
 
+        self.start_time = time.monotonic()
+        self.time_left = MATCH_SECONDS
+        self.match_over = False
+
     def _launch_puck(self):
         angle_choices = [0.3, 0.6, -0.3, -0.6]
         direction = random.choice([-1, 1])
@@ -52,6 +58,8 @@ class GameEngine:
 
     def handle_input(self, keys_pressed):
         import pygame
+        if self.match_over:
+            return
         dx = dy = 0
         if keys_pressed[pygame.K_UP]:
             dy -= PLAYER_SPEED
@@ -64,6 +72,13 @@ class GameEngine:
         self.player.move_by(dx, dy)
 
     def update(self):
+        if self.match_over:
+            return
+        self.time_left = max(0.0, MATCH_SECONDS - (time.monotonic() - self.start_time))
+        if self.time_left == 0:
+            self.match_over = True
+            return
+
         self.ai.update(self.computer, self.puck)
         self.player.track_velocity()
         self.computer.track_velocity()
@@ -139,3 +154,12 @@ class GameEngine:
         renderer.draw_paddle(surface, self.computer, renderer.COLOR_COMPUTER)
         renderer.draw_puck(surface, self.puck)
         renderer.draw_scores(surface, font, self.player_score, self.computer_score)
+        renderer.draw_timer(surface, font, math.ceil(self.time_left))
+        if self.match_over:
+            renderer.draw_dim(surface)
+            renderer.draw_banner(
+                surface, font,
+                f"{self.result_text()}  {self.player_score} - {self.computer_score}",
+                offset_y=-80,
+            )
+            renderer.draw_banner(surface, font, "Press R to play again", offset_y=-44)
