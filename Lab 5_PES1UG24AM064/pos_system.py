@@ -1,4 +1,7 @@
-"""Retail point-of-sale script: totals carts, applies promo codes and logs receipts."""
+"""Retail point-of-sale script.
+
+Totals carts with tax, applies promo codes and logs receipts.
+"""
 import itertools
 import logging
 import operator
@@ -10,7 +13,8 @@ PROMO_PATTERN = re.compile(r"^\s*total\s*([*\-])\s*(\d+(?:\.\d+)?)\s*$")
 PROMO_OPERATORS = {"*": operator.mul, "-": operator.sub}
 DEFAULT_TAX_RATE = 0.05
 
-logging.basicConfig(level=logging.WARNING, format="%(levelname)s: %(message)s")
+logging.basicConfig(level=logging.WARNING,
+                    format="%(levelname)s: %(message)s")
 
 
 class PosRegister:
@@ -21,8 +25,9 @@ class PosRegister:
         self.receipt_lines = []
         self._receipt_counter = itertools.count(1001)
 
-    def process_checkout(self, cart_items, tax_rate=DEFAULT_TAX_RATE, receipts=None):
-        """Total a cart of (item, quantity) pairs with tax and record the receipt."""
+    def process_checkout(self, cart_items, tax_rate=DEFAULT_TAX_RATE,
+                         receipts=None):
+        """Total a cart of (item, quantity) pairs and record the receipt."""
         if receipts is None:
             receipts = []
         if not 0 <= tax_rate <= 1:
@@ -35,17 +40,19 @@ class PosRegister:
                 logging.warning("Unknown item %r skipped", name)
                 continue
             if not isinstance(qty, int) or isinstance(qty, bool) or qty <= 0:
-                logging.warning("Invalid quantity %r for %r skipped", qty, name)
+                logging.warning("Invalid quantity %r for %r skipped",
+                                qty, name)
                 continue
             subtotal += PRICE_LIST[name] * qty
         total = round(subtotal * (1 + tax_rate), 2)
         receipts.append(total)
         self.sales_total = round(self.sales_total + total, 2)
-        self.receipt_lines.append(f"Receipt #{next(self._receipt_counter)} total={total:.2f}")
+        receipt_no = next(self._receipt_counter)
+        self.receipt_lines.append(f"Receipt #{receipt_no} total={total:.2f}")
         return total
 
     def apply_promo_code(self, code_str):
-        """Apply a promo code like "total * 0.9" or "total - 50" to the sales total.
+        """Apply a promo code like "total * 0.9" or "total - 50".
 
         The code is parsed safely instead of being passed to eval().
         """
@@ -54,7 +61,8 @@ class PosRegister:
             logging.warning("Invalid promo code %r ignored", code_str)
             return self.sales_total
         op_symbol, value = match.groups()
-        return round(max(PROMO_OPERATORS[op_symbol](self.sales_total, float(value)), 0), 2)
+        new_total = PROMO_OPERATORS[op_symbol](self.sales_total, float(value))
+        return round(max(new_total, 0), 2)
 
     def save_receipt_log(self, file="pos_log.txt"):
         """Append all receipts to the log file."""
@@ -90,4 +98,6 @@ def main():
     register.save_receipt_log()
     register.print_sales()
 
-main()
+
+if __name__ == "__main__":
+    main()
